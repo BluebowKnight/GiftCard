@@ -126,6 +126,19 @@
       transition: background-color 1.2s ease;
     }
 
+    /* Safari 修复：正面的子元素（如顶部小字）在翻面后不会随正面一起隐藏 */
+    .face,
+    .face > *,
+    .face::before,
+    .face::after {
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+    }
+    .front {
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+
     /* 明信片内侧的细边框 */
     .face::before {
       content: "";
@@ -160,7 +173,8 @@
 
     /* 背面：内容居中，避开左上角的返回按钮 */
     .back {
-      transform: rotateY(180deg);
+      -webkit-transform: rotateY(180deg) translateZ(0);
+      transform: rotateY(180deg) translateZ(0);
       display: flex;
       flex-direction: column;
       align-items: center;

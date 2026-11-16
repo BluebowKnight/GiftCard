@@ -461,14 +461,15 @@
       var backBtn = document.getElementById('backBtn');
       var nameEl = document.getElementById('name');
 
-      // 名称：取 URL 中 index 后面的内容，例如 /index/maxiaobin 得到 maxiaobin；没有则显示“朋友”
+      // 名称：取 URL 第一段路径，例如 /maxiaobin 得到 maxiaobin；/、/index.html 等没有名称的地址视为默认页面
       var name = '';
-      var match = window.location.pathname.match(/\/index\/([^\/?#]+)/i);
-      if (match && match[1]) {
+      var firstSegment = window.location.pathname.split('/')[1] || '';
+      var lower = firstSegment.toLowerCase();
+      if (firstSegment && lower !== 'index.html' && lower !== 'index') {
         try {
-          name = decodeURIComponent(match[1]);
+          name = decodeURIComponent(firstSegment);
         } catch (err) {
-          name = match[1];
+          name = firstSegment;
         }
       }
       name = name.trim();

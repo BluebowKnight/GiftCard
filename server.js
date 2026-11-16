@@ -1,5 +1,5 @@
 // 本地预览服务器：无需安装任何依赖，直接用 node server.js 启动
-// 所有 /index/xxx 形式的地址都返回 index.html，名称由页面从地址中读取
+// 任意地址都返回 index.html，名称由页面从地址第一段路径中读取，例如 /maxiaobin
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -7,11 +7,9 @@ const path = require('path');
 const PORT = process.env.PORT || 3000;
 const FILE = path.join(__dirname, 'index.html');
 
+// 所有路径都返回 index.html，与 Netlify 上 _redirects 的 /* 规则保持一致
 function isPageRoute(pathname) {
-  return pathname === '/' ||
-    pathname === '/index.html' ||
-    pathname === '/index' ||
-    pathname.startsWith('/index/');
+  return pathname.length > 0;
 }
 
 const server = http.createServer((req, res) => {
@@ -39,5 +37,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`本地预览已启动：http://localhost:${PORT}`);
-  console.log(`示例：http://localhost:${PORT}/index/maxiaobin`);
+  console.log(`示例：http://localhost:${PORT}/maxiaobin`);
 });

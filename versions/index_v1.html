@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Merry Xmas</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: "Georgia", "Times New Roman", "Songti SC", serif;
+      color: #111;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+      overflow: hidden;
+      position: relative;
+      background: #070a1c;
+    }
+
+    /* ---- 背景：翻开前是黎明前的夜空，翻开后变成温暖明媚的暖光 ---- */
+    .sky {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+    .sky > div {
+      position: absolute;
+      inset: 0;
+      transition: opacity 1.8s ease;
+    }
+    .night {
+      /* 黎明前：深蓝到靛紫，地平线处有一点微光 */
+      background: radial-gradient(ellipse at 50% 115%, #3a3f6b 0%, #1a1d3a 40%, #070a1c 100%);
+    }
+    .day {
+      /* 温馨暖光：暖黄到砖红再到深酒红 */
+      background: radial-gradient(circle at 50% 25%, #f5c58a 0%, #d9765a 50%, #8f3a3a 100%);
+      opacity: 0;
+    }
+    body.colored .night { opacity: 0; }
+    body.colored .day   { opacity: 1; }
+
+    /* 下雪效果：缓慢飘落 */
+    .flake {
+      position: fixed;
+      top: -12px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+      opacity: 0.85;
+      pointer-events: none;
+      z-index: 1;
+      animation-name: fall, sway;
+      animation-timing-function: linear, ease-in-out;
+      animation-iteration-count: infinite, infinite;
+      animation-direction: normal, alternate;
+    }
+    @keyframes fall {
+      to { transform: translateY(110vh); }
+    }
+    @keyframes sway {
+      from { margin-left: -12px; }
+      to   { margin-left: 12px; }
+    }
+
+    /*
+      明信片尺寸随屏幕自适应：
+      - 宽度不超过屏幕宽度的 92%，也不超过 560px（平板上限）
+      - 高度按 1.45 的比例计算，并保证不超过可视区域高度
+    */
+    .scene {
+      --card-w: min(92vw, 560px, calc((100vh - 40px) / 1.45));
+      --card-w: min(92vw, 560px, calc((100dvh - 40px) / 1.45));
+      position: relative;
+      z-index: 2;
+      width: var(--card-w);
+      height: calc(var(--card-w) * 1.45);
+      perspective: 1600px;
+      /* 允许上下滚动（背面文字过长时），左右滑动交给脚本处理翻页 */
+      touch-action: pan-y;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 1s cubic-bezier(0.4, 0.2, 0.2, 1);
+    }
+
+    .card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      background: #f7f7f5;
+      border-radius: 6px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      transition: background-color 1.2s ease;
+    }
+
+    /* 明信片内侧的细边框 */
+    .face::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid #111;
+      pointer-events: none;
+      z-index: 2;
+      transition: border-color 1.2s ease;
+    }
+
+    /* 纸张颗粒感 */
+    .face::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(0,0,0,0.035) 1px, transparent 1px);
+      background-size: 4px 4px;
+      pointer-events: none;
+    }
+
+    /* 正面：内容在边框内居中排列，四周留出足够空白 */
+    .front {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(22px, 4.5vh, 40px);
+      padding: 56px 40px 52px;
+    }
+
+    /* 背面：内容居中，避开左上角的返回按钮 */
+    .back {
+      transform: rotateY(180deg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 72px 44px 60px;
+      text-align: center;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .overview {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .eyebrow {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      transition: color 1.2s ease;
+    }
+
+    .title {
+      font-size: clamp(40px, 13vw, 64px);
+      font-weight: 700;
+      letter-spacing: 2px;
+      line-height: 1.12;
+      font-style: italic;
+      transition: color 1.2s ease;
+    }
+
+    .subtitle {
+      margin-top: 16px;
+      font-size: clamp(14px, 3.8vw, 18px);
+      letter-spacing: 1px;
+      color: #444;
+      transition: color 1.2s ease;
+    }
+
+    .figure {
+      width: clamp(120px, 42%, 220px);
+      height: auto;
+      aspect-ratio: 170 / 200;
+      flex-shrink: 1;
+      min-height: 0;
+    }
+
+    /* ---- 树的配色：默认黑白，翻过一次后变彩色 ---- */
+    .figure .star      { fill: #111; transition: fill 1.2s ease; }
+    .figure .crown     { fill: #f7f7f5; stroke: #111; transition: fill 1.2s ease, stroke 1.2s ease; }
+    .figure .trunk     { fill: #111; transition: fill 1.2s ease; }
+    .figure .ground    { stroke: #111; transition: stroke 1.2s ease; }
+    .figure .orn       { fill: #111; transition: fill 1.2s ease; }
+    .figure .snowdot   { fill: #111; transition: fill 1.2s ease; }
+
+    .card.colored .figure .star    { fill: #f9b233; }
+    .card.colored .figure .crown   { fill: #2e7d32; stroke: #1b5e20; }
+    .card.colored .figure .trunk   { fill: #6d4c41; }
+    .card.colored .figure .ground  { stroke: #1b5e20; }
+    .card.colored .figure .orn-r   { fill: #c62828; }
+    .card.colored .figure .orn-g   { fill: #f9b233; }
+    .card.colored .figure .snowdot { fill: #90a4ae; }
+
+    .btn {
+      padding: 12px 30px;
+      background: #111;
+      color: #f7f7f5;
+      border: 1px solid #111;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.25s, color 0.25s, border-color 1.2s ease;
+    }
+    .btn:hover, .btn:focus-visible {
+      background: #f7f7f5;
+      color: #111;
+      outline: none;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .card.colored .btn {
+      background: #b71c1c;
+      border-color: #b71c1c;
+    }
+    .card.colored .btn:hover,
+    .card.colored .btn:focus-visible {
+      background: #fffaf3;
+      color: #b71c1c;
+    }
+
+    /* 背面文字：直接展示，无动效 */
+    .wish-title {
+      font-size: clamp(26px, 8vw, 38px);
+      font-style: italic;
+      font-weight: 700;
+      margin-bottom: 24px;
+      letter-spacing: 1px;
+    }
+
+    .wish {
+      font-size: clamp(14px, 4.2vw, 20px);
+      line-height: 1.8;
+      margin-bottom: 14px;
+      color: #222;
+    }
+
+    .sign {
+      margin-top: 14px;
+      font-style: italic;
+      font-size: clamp(14px, 3.8vw, 17px);
+      color: #444;
+    }
+
+    /* 左上角的小字“返回首页”，放在边框内侧 */
+    .back-btn {
+      position: absolute;
+      top: 26px;
+      left: 28px;
+      background: none;
+      border: none;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: #999;
+      cursor: pointer;
+      padding: 4px 2px;
+      z-index: 3;
+    }
+    .back-btn:hover,
+    .back-btn:focus-visible {
+      color: #111;
+      outline: none;
+    }
+
+    /* ---- 彩色状态：第一次翻页后，明信片变成彩色 ---- */
+    .card.colored .face {
+      background: #fffaf3;
+    }
+    .card.colored .face::before {
+      border-color: #b71c1c;
+    }
+    .card.colored .eyebrow {
+      color: #1b5e20;
+    }
+    .card.colored .title {
+      color: #b71c1c;
+    }
+    .card.colored .subtitle {
+      color: #2e7d32;
+    }
+    .card.colored .wish-title {
+      color: #b71c1c;
+    }
+    .card.colored .wish {
+      color: #3e2723;
+    }
+    .card.colored .sign {
+      color: #2e7d32;
+    }
+    .card.colored .back-btn {
+      color: #d4898a;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card, .face, .face::before, .figure *, .btn, .sky > div { transition: none !important; }
+      .flake { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 背景层：夜空 / 暖光 -->
+  <div class="sky" aria-hidden="true">
+    <div class="night"></div>
+    <div class="day"></div>
+  </div>
+
+  <main class="scene">
+    <div class="card" id="card">
+
+      <!-- 正面 -->
+      <section class="face front">
+        <header class="overview">
+          <p class="eyebrow">Season's Greetings</p>
+          <h1 class="title">Merry<br />Xmas</h1>
+          <p class="subtitle">愿冬日的光落在你身上</p>
+        </header>
+
+        <!-- 中间的图案：圣诞树，默认黑白，翻过一次后变彩色 -->
+        <svg class="figure" viewBox="0 0 170 200" aria-hidden="true">
+          <g stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+            <!-- 星星 -->
+            <path class="star" d="M85 4 L90 16 L103 16 L92 24 L96 37 L85 29 L74 37 L78 24 L67 16 L80 16 Z" stroke="none"/>
+            <!-- 树冠 -->
+            <path class="crown" d="M85 40 L62 80 L72 80 L50 116 L62 116 L36 154 L134 154 L108 116 L120 116 L98 80 L108 80 Z"/>
+            <!-- 树干 -->
+            <rect class="trunk" x="75" y="154" width="20" height="26" stroke="none"/>
+            <!-- 地面线 -->
+            <line class="ground" x1="20" y1="186" x2="150" y2="186" />
+          </g>
+          <!-- 装饰球 -->
+          <circle class="orn orn-r" cx="85" cy="100" r="4"/>
+          <circle class="orn orn-g" cx="66" cy="136" r="4"/>
+          <circle class="orn orn-r" cx="106" cy="134" r="4"/>
+          <circle class="orn orn-g" cx="85" cy="70" r="3"/>
+          <!-- 雪点 -->
+          <circle class="snowdot" cx="26" cy="30" r="1.8"/>
+          <circle class="snowdot" cx="150" cy="60" r="1.8"/>
+          <circle class="snowdot" cx="20" cy="110" r="1.5"/>
+          <circle class="snowdot" cx="152" cy="130" r="1.5"/>
+          <circle class="snowdot" cx="40" cy="170" r="1.5"/>
+        </svg>
+
+        <button class="btn" id="flipBtn" type="button">翻开明信片</button>
+      </section>
+
+      <!-- 背面 -->
+      <section class="face back">
+        <button class="back-btn" id="backBtn" type="button">← 返回首页</button>
+
+        <h2 class="wish-title">Dear You</h2>
+        <p class="wish">愿你的每一天都像雪后初晴般明亮。</p>
+        <p class="wish">愿温暖常伴你左右，愿烦恼被风轻轻带走。</p>
+        <p class="wish">愿你所期待的，都在新的一年如约而至。</p>
+        <p class="wish">愿平安、健康、快乐，与你相伴每一个清晨。</p>
+        <p class="wish">Merry Xmas and a Happy New Year!</p>
+        <p class="sign">— 愿你安好</p>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var card = document.getElementById('card');
+      var flipBtn = document.getElementById('flipBtn');
+      var backBtn = document.getElementById('backBtn');
+
+      // 第一次翻页时明信片和背景都变成彩色，之后保持彩色
+      function flip(toBack) {
+        if (toBack) {
+          card.classList.add('colored');
+          document.body.classList.add('colored');
+        }
+        card.classList.toggle('flipped', toBack);
+      }
+
+      flipBtn.addEventListener('click', function () { flip(true); });
+      backBtn.addEventListener('click', function () { flip(false); });
+
+      // 滑动翻页：正面和背面都可以，方向不限（左滑、右滑均可）
+      var SWIPE_MIN_DISTANCE = 50;   // 最小滑动距离（px）
+      var scene = document.querySelector('.scene');
+      var startX = 0, startY = 0, tracking = false;
+
+      scene.addEventListener('pointerdown', function (e) {
+        startX = e.clientX;
+        startY = e.clientY;
+        tracking = true;
+      });
+
+      scene.addEventListener('pointercancel', function () {
+        tracking = false;
+      });
+
+      scene.addEventListener('pointerup', function (e) {
+        if (!tracking) return;
+        tracking = false;
+
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+
+        // 水平距离要足够大，并且明显大于垂直距离，避免与上下滚动冲突
+        if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+
+        var isBack = card.classList.contains('flipped');
+        flip(!isBack);
+      });
+
+      // 生成雪花：下落速度放慢，周期 18–30 秒
+      var COUNT = 35;
+      var frag = document.createDocumentFragment();
+      for (var i = 0; i < COUNT; i++) {
+        var f = document.createElement('span');
+        var size = 4 + Math.random() * 6;
+        f.className = 'flake';
+        f.style.width = size + 'px';
+        f.style.height = size + 'px';
+        f.style.left = (Math.random() * 100) + 'vw';
+        f.style.opacity = (0.5 + Math.random() * 0.5).toFixed(2);
+        f.style.animationDuration = (18 + Math.random() * 12) + 's, ' + (4 + Math.random() * 3) + 's';
+        f.style.animationDelay = (-Math.random() * 30) + 's, 0s';
+        frag.appendChild(f);
+      }
+      document.body.insertBefore(frag, document.body.firstChild);
+    })();
+  </script>
+</body>
+</html>

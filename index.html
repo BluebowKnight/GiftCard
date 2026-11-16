@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Merry Xmas</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: "Georgia", "Times New Roman", "Songti SC", serif;
+      color: #111;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+      overflow: hidden;
+      position: relative;
+      background: #070a1c;
+    }
+
+    /* ---- 背景：翻开前是黎明前的夜空，翻开后变成温暖明媚的暖光 ---- */
+    .sky {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+    .sky > div {
+      position: absolute;
+      inset: 0;
+      transition: opacity 1.8s ease;
+    }
+    .night {
+      /* 黎明前：深蓝到靛紫，地平线处有一点微光 */
+      background: radial-gradient(ellipse at 50% 115%, #3a3f6b 0%, #1a1d3a 40%, #070a1c 100%);
+    }
+    .day {
+      /* 温馨暖光：暖黄到砖红再到深酒红 */
+      background: radial-gradient(circle at 50% 25%, #f5c58a 0%, #d9765a 50%, #8f3a3a 100%);
+      opacity: 0;
+    }
+    body.colored .night { opacity: 0; }
+    body.colored .day   { opacity: 1; }
+
+    /* 第一次翻页时的彩纸和烟花画布，覆盖全屏且不拦截点击 */
+    .fx {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* 下雪效果：缓慢飘落 */
+    .flake {
+      position: fixed;
+      top: -12px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+      opacity: 0.85;
+      pointer-events: none;
+      z-index: 1;
+      animation-name: fall, sway;
+      animation-timing-function: linear, ease-in-out;
+      animation-iteration-count: infinite, infinite;
+      animation-direction: normal, alternate;
+    }
+    @keyframes fall {
+      to { transform: translateY(110vh); }
+    }
+    @keyframes sway {
+      from { margin-left: -12px; }
+      to   { margin-left: 12px; }
+    }
+
+    /*
+      明信片尺寸随屏幕自适应：
+      - 宽度不超过屏幕宽度的 92%，也不超过 560px（平板上限）
+      - 高度按 1.45 的比例计算，并保证不超过可视区域高度
+    */
+    .scene {
+      --card-w: min(92vw, 560px, calc((100vh - 40px) / 1.45));
+      --card-w: min(92vw, 560px, calc((100dvh - 40px) / 1.45));
+      position: relative;
+      z-index: 2;
+      width: var(--card-w);
+      height: calc(var(--card-w) * 1.45);
+      perspective: 1600px;
+      /* 允许上下滚动（背面文字过长时），左右滑动交给脚本处理翻页 */
+      touch-action: pan-y;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 1s cubic-bezier(0.4, 0.2, 0.2, 1);
+    }
+
+    .card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      background: #f7f7f5;
+      border-radius: 6px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      transition: background-color 1.2s ease;
+    }
+
+    /* 明信片内侧的细边框 */
+    .face::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid #111;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 2;
+      transition: border-color 1.2s ease;
+    }
+
+    /* 纸张颗粒感 */
+    .face::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(0,0,0,0.035) 1px, transparent 1px);
+      background-size: 4px 4px;
+      pointer-events: none;
+    }
+
+    /* 正面：顶部小字固定在上方，其余内容在边框内居中排列 */
+    .front {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(20px, 4vh, 36px);
+      padding: 76px 36px 60px;
+    }
+
+    /* 背面：内容居中，避开左上角的返回按钮 */
+    .back {
+      transform: rotateY(180deg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      justify-content: safe center;
+      padding: 72px 44px 60px;
+      text-align: center;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 顶部小字：雪夜寄怀·岁暮问安 */
+    .kicker {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #7a7a7a;
+      z-index: 3;
+      transition: color 1.2s ease;
+    }
+
+    /* 名称区域：献给 / 名称 / 祝语 */
+    .overview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+    }
+
+    .lead {
+      font-size: 14px;
+      letter-spacing: 3px;
+      color: #666;
+      margin-bottom: 14px;
+      transition: color 1.2s ease;
+    }
+
+    .title {
+      font-size: clamp(36px, 11vw, 58px);
+      font-weight: 700;
+      font-style: italic;
+      letter-spacing: 2px;
+      line-height: 1.1;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      color: #111;
+      transition: color 1.2s ease;
+    }
+
+    .tagline {
+      margin-top: 18px;
+      font-size: clamp(14px, 3.6vw, 16px);
+      font-style: italic;
+      letter-spacing: 2px;
+      color: #555;
+      transition: color 1.2s ease;
+    }
+
+    .figure {
+      width: clamp(120px, 37%, 196px);
+      margin-bottom: -24px;
+      height: auto;
+      aspect-ratio: 170 / 200;
+      flex-shrink: 1;
+      min-height: 0;
+    }
+
+    /* ---- 树的配色：默认黑白，翻过一次后变彩色 ---- */
+    .figure .star      { fill: #111; transition: fill 1.2s ease; }
+    .figure .crown     { fill: #f7f7f5; stroke: #111; transition: fill 1.2s ease, stroke 1.2s ease; }
+    .figure .trunk     { fill: #111; transition: fill 1.2s ease; }
+    .figure .ground    { stroke: #111; transition: stroke 1.2s ease; }
+    .figure .orn       { fill: #111; transition: fill 1.2s ease; }
+    .figure .snowdot   { fill: #111; transition: fill 1.2s ease; }
+
+    .card.colored .figure .star    { fill: #f9b233; }
+    .card.colored .figure .crown   { fill: #2e7d32; stroke: #1b5e20; }
+    .card.colored .figure .trunk   { fill: #6d4c41; }
+    .card.colored .figure .ground  { stroke: #1b5e20; }
+    .card.colored .figure .orn-r   { fill: #c62828; }
+    .card.colored .figure .orn-g   { fill: #f9b233; }
+    .card.colored .figure .snowdot { fill: #90a4ae; }
+
+    /* 按钮：两行文字，主文字 + 下方小字 */
+    .btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 13px 34px 12px;
+      background: transparent;
+      color: #111;
+      border: 1px solid #8a8a8a;
+      border-radius: 4px;
+      font-family: "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      cursor: pointer;
+      transition: background 0.25s, color 0.25s, border-color 1.2s ease;
+    }
+    .btn-main {
+      font-size: 15px;
+      letter-spacing: 3px;
+    }
+    .btn-hint {
+      font-size: 9px;
+      letter-spacing: 2px;
+      opacity: 0.5;
+    }
+    .btn:hover, .btn:focus-visible {
+      background: #111;
+      color: #f7f7f5;
+      outline: none;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .card.colored .btn {
+      color: #1f4d2b;
+      border-color: #9bb5a2;
+    }
+    .card.colored .btn:hover,
+    .card.colored .btn:focus-visible {
+      background: #1f4d2b;
+      color: #fffaf3;
+    }
+
+    /* 背面文字：直接展示，无动效 */
+    .wish-title {
+      font-size: clamp(26px, 8vw, 38px);
+      font-style: italic;
+      font-weight: 700;
+      margin-bottom: 24px;
+      letter-spacing: 1px;
+    }
+
+    .wish {
+      font-size: clamp(14px, 4.2vw, 20px);
+      line-height: 1.8;
+      margin-bottom: 14px;
+      color: #222;
+    }
+
+    .sign {
+      margin-top: 14px;
+      font-style: italic;
+      font-size: clamp(14px, 3.8vw, 17px);
+      color: #444;
+    }
+
+    /* 左上角的小字“返回首页”，放在边框内侧 */
+    .back-btn {
+      position: absolute;
+      top: 26px;
+      left: 28px;
+      background: none;
+      border: none;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: #999;
+      cursor: pointer;
+      padding: 4px 2px;
+      z-index: 3;
+    }
+    .back-btn:hover,
+    .back-btn:focus-visible {
+      color: #111;
+      outline: none;
+    }
+
+    /* ---- 彩色状态：第一次翻页后，明信片变成彩色 ---- */
+    /* 金色与松绿为主，不再使用大面积红色 */
+    .card.colored .face {
+      background: #fffaf3;
+    }
+    .card.colored .face::before {
+      border-color: #c9a227;
+    }
+    .card.colored .kicker {
+      color: #a67c1a;
+    }
+    .card.colored .lead {
+      color: #a67c1a;
+    }
+    .card.colored .title {
+      color: #1f4d2b;
+    }
+    .card.colored .tagline {
+      color: #6b5a2a;
+    }
+    .card.colored .wish-title {
+      color: #1f4d2b;
+    }
+    .card.colored .wish {
+      color: #3e2723;
+    }
+    .card.colored .sign {
+      color: #a67c1a;
+    }
+    .card.colored .back-btn {
+      color: #a67c1a;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card, .face, .face::before, .figure *, .btn, .sky > div, .kicker, .lead, .title, .tagline { transition: none !important; }
+      .flake { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 背景层：夜空 / 暖光 -->
+  <div class="sky" aria-hidden="true">
+    <div class="night"></div>
+    <div class="day"></div>
+  </div>
+
+  <main class="scene">
+    <div class="card" id="card">
+
+      <!-- 正面 -->
+      <section class="face front">
+        <p class="kicker">雪夜寄怀·岁暮问安</p>
+
+        <header class="overview">
+          <p class="lead">谨以此小小心意，献给</p>
+          <h1 class="title" id="name">朋友</h1>
+          <p class="tagline">愿你所遇皆暖，所念皆成</p>
+        </header>
+
+        <!-- 中间的图案：圣诞树，默认黑白，翻过一次后变彩色 -->
+        <svg class="figure" viewBox="0 0 170 200" aria-hidden="true">
+          <g stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+            <!-- 星星 -->
+            <path class="star" d="M85 4 L90 16 L103 16 L92 24 L96 37 L85 29 L74 37 L78 24 L67 16 L80 16 Z" stroke="none"/>
+            <!-- 树冠 -->
+            <path class="crown" d="M85 40 L62 80 L72 80 L50 116 L62 116 L36 154 L134 154 L108 116 L120 116 L98 80 L108 80 Z"/>
+            <!-- 树干 -->
+            <rect class="trunk" x="75" y="154" width="20" height="26" stroke="none"/>
+            <!-- 地面线 -->
+            <line class="ground" x1="20" y1="186" x2="150" y2="186" />
+          </g>
+          <!-- 装饰球 -->
+          <circle class="orn orn-r" cx="85" cy="100" r="4"/>
+          <circle class="orn orn-g" cx="66" cy="136" r="4"/>
+          <circle class="orn orn-r" cx="106" cy="134" r="4"/>
+          <circle class="orn orn-g" cx="85" cy="70" r="3"/>
+          <!-- 雪点 -->
+          <circle class="snowdot" cx="26" cy="30" r="1.8"/>
+          <circle class="snowdot" cx="150" cy="60" r="1.8"/>
+          <circle class="snowdot" cx="20" cy="110" r="1.5"/>
+          <circle class="snowdot" cx="152" cy="130" r="1.5"/>
+          <circle class="snowdot" cx="40" cy="170" r="1.5"/>
+        </svg>
+
+        <button class="btn" id="flipBtn" type="button">
+          <span class="btn-main">你终于来啦</span>
+          <span class="btn-hint">轻点或滑动</span>
+        </button>
+      </section>
+
+      <!-- 背面 -->
+      <section class="face back">
+        <button class="back-btn" id="backBtn" type="button">← 返回首页</button>
+
+        <!-- 默认背面文字 -->
+        <div class="letter-default">
+          <h2 class="wish-title">Dear You</h2>
+          <p class="wish">愿你的每一天都像雪后初晴般明亮。</p>
+          <p class="wish">愿温暖常伴你左右，愿烦恼被风轻轻带走。</p>
+          <p class="wish">愿你所期待的，都在新的一年如约而至。</p>
+          <p class="wish">愿平安、健康、快乐，与你相伴每一个清晨。</p>
+          <p class="wish">Merry Xmas and a Happy New Year!</p>
+          <p class="sign">— 愿你安好</p>
+        </div>
+
+        <!-- 名称为 Johnny 时显示的专属背面文字 -->
+        <div class="letter-johnny" hidden>
+          <h2 class="wish-title">嘿，年轻的旅人</h2>
+          <p class="wish">当冬夜的晚星如精灵宝钻般闪烁，当炉火在壁炉里跳起霍比特人的舞步，你便知道：圣诞的钟声并非敲自教堂尖顶，而是响在每一颗愿意相信奇迹的心里。</p>
+          <p class="wish">有些魔法从不写在咒语书里——分享的苹果酒，一个拥抱，暴风雪夜为陌生人留的那盏灯。即便智者，也无法洞悉所有结局，但我们可以决定的，是如何对待手中握着的时日。</p>
+          <p class="wish">圣诞快乐，我的朋友。愿你来年如夏尔般安逸，如刚铎般坚定，如洛丝罗瑞恩般，永远藏着一片不肯凋零的春天。</p>
+          <p class="wish">现在，去拆你的礼物吧——我保证，里面没有龙。</p>
+          <p class="sign">—欧罗林</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var card = document.getElementById('card');
+      var flipBtn = document.getElementById('flipBtn');
+      var backBtn = document.getElementById('backBtn');
+      var nameEl = document.getElementById('name');
+
+      // 名称：取 URL 中 index 后面的内容，例如 /index/maxiaobin 得到 maxiaobin；没有则显示“朋友”
+      var name = '';
+      var match = window.location.pathname.match(/\/index\/([^\/?#]+)/i);
+      if (match && match[1]) {
+        try {
+          name = decodeURIComponent(match[1]);
+        } catch (err) {
+          name = match[1];
+        }
+      }
+      name = name.trim();
+      var hasName = name !== '';
+      nameEl.textContent = hasName ? name : '圣诞快乐'; // 使用 textContent 防止注入
+      if (!hasName) {
+        document.querySelector('.lead').textContent = '嘿，旅者';
+      }
+
+      // 名称为 Johnny（不区分大小写）时，背面显示专属文字
+      if (hasName && name.toLowerCase() === 'johnny') {
+        document.querySelector('.letter-default').hidden = true;
+        document.querySelector('.letter-johnny').hidden = false;
+      }
+
+      // 没有名称（默认页面）时不显示按钮，也不支持滑动翻页
+      // 使用 visibility 隐藏而不是移除，保留按钮占位，使标题和圣诞树位置与有按钮时一致
+      if (!hasName) {
+        flipBtn.style.visibility = 'hidden';
+        flipBtn.setAttribute('aria-hidden', 'true');
+        flipBtn.tabIndex = -1;
+      }
+
+      // 第一次翻页时的庆祝效果：从底部抛出彩色纸片、星星和小球，并在夜空中绽放烟花（纯 canvas 绘制，约 6 秒后自动清除）
+      function celebrate() {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        var canvas = document.createElement('canvas');
+        canvas.className = 'fx';
+        document.body.appendChild(canvas);
+        var ctx = canvas.getContext('2d');
+        var dpr = window.devicePixelRatio || 1;
+        var W = window.innerWidth;
+        var H = window.innerHeight;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        // 按屏幕大小缩放彩纸和烟花，手机和平板上都能铺满页面
+        var SCALE = Math.max(0.8, Math.min(W, H) / 375);
+
+        var COLORS = ['#f9b233', '#c62828', '#2e7d32', '#ffffff', '#e8956f', '#90caf9'];
+        var SHAPES = ['strip', 'strip', 'star', 'ball', 'tree'];
+        var particles = [];
+        var rand = function (a, b) { return a + Math.random() * (b - a); };
+        var pick = function (arr) { return arr[Math.floor(Math.random() * arr.length)]; };
+
+        // 彩纸：从屏幕底部中间向上喷出，受重力下落
+        function shoot(count) {
+          for (var i = 0; i < count; i++) {
+            particles.push({
+              type: 'confetti',
+              shape: pick(SHAPES),
+              color: pick(COLORS),
+              x: rand(W * 0.05, W * 0.95),
+              y: H * rand(0.92, 0.98),
+              vx: rand(-2.5, 2.5) * SCALE,
+              // 每张彩纸的上升高度都在屏幕高度的 45%–85% 之间随机，两批之间也互不相同
+              vy: -Math.sqrt(2 * 0.2 * H * rand(0.45, 0.85)),
+              rot: rand(0, Math.PI * 2),
+              vr: rand(-0.1, 0.1),
+              size: rand(14, 22) * SCALE,
+              life: 1,
+              decay: 0.004
+            });
+          }
+        }
+
+        // 在卡片以外的区域（上方、下方、左右两侧）随机选一个烟花爆炸点，不会在卡片上方炸开
+        function outsidePoint() {
+          var rect = document.querySelector('.scene').getBoundingClientRect();
+          var M = 24;
+          var regions = [
+            { x0: 0, y0: 0, x1: W, y1: rect.top - M },
+            { x0: 0, y0: rect.bottom + M, x1: W, y1: H },
+            { x0: 0, y0: rect.top, x1: rect.left - M, y1: rect.bottom },
+            { x0: rect.right + M, y0: rect.top, x1: W, y1: rect.bottom }
+          ].filter(function (r) {
+            return r.x1 - r.x0 > 40 && r.y1 - r.y0 > 40;
+          });
+          if (regions.length === 0) return null;
+          var r = pick(regions);
+          return {
+            x: rand(Math.max(r.x0, M), Math.min(r.x1, W - M)),
+            y: rand(Math.max(r.y0, M), Math.min(r.y1, H - M))
+          };
+        }
+
+        // 烟花：在卡片以外的位置炸开，向四周飞出彩色火花
+        function burst() {
+          var point = outsidePoint();
+          if (!point) return;
+          var x = point.x;
+          var y = point.y;
+          var color = pick(COLORS);
+          var n = 28;
+          for (var i = 0; i < n; i++) {
+            var angle = (i / n) * Math.PI * 2 + rand(-0.1, 0.1);
+            var speed = rand(2.5, 5) * SCALE;
+            particles.push({
+              type: 'spark',
+              x: x,
+              y: y,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              color: color,
+              size: rand(2.2, 3.6) * SCALE,
+              life: 1,
+              decay: rand(0.006, 0.009)
+            });
+          }
+        }
+
+        shoot(30);
+        setTimeout(function () { shoot(20); }, 800);
+        setTimeout(burst, 1000);
+        setTimeout(burst, 2300);
+        setTimeout(burst, 3500);
+
+        var start = null;
+        var DURATION = 6000;
+        var rafId = null;
+
+        function finish() {
+          cancelAnimationFrame(rafId);
+          canvas.remove();
+        }
+
+        // 用 canvas 路径绘制彩纸、星星、小球和小树
+        function drawShape(p) {
+          var s = p.size;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.fillStyle = p.color;
+
+          if (p.shape === 'strip') {
+            // 彩纸条
+            ctx.fillRect(-s * 0.2, -s * 0.6, s * 0.4, s * 1.2);
+          } else if (p.shape === 'star') {
+            // 五角星
+            ctx.beginPath();
+            for (var k = 0; k < 10; k++) {
+              var r = k % 2 === 0 ? s * 0.6 : s * 0.25;
+              var a = (k / 10) * Math.PI * 2 - Math.PI / 2;
+              ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            ctx.closePath();
+            ctx.fill();
+          } else if (p.shape === 'ball') {
+            // 圣诞小球，带一个高光点
+            ctx.beginPath();
+            ctx.arc(0, 0, s * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(-s * 0.12, -s * 0.12, s * 0.12, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            // 小圣诞树：三角形树冠加树干
+            ctx.beginPath();
+            ctx.moveTo(0, -s * 0.6);
+            ctx.lineTo(s * 0.45, s * 0.4);
+            ctx.lineTo(-s * 0.45, s * 0.4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(-s * 0.08, s * 0.4, s * 0.16, s * 0.2);
+          }
+          ctx.restore();
+        }
+
+        function frame(now) {
+          if (start === null) start = now;
+          if (now - start >= DURATION) {
+            finish();
+            return;
+          }
+
+          ctx.clearRect(0, 0, W, H);
+
+          particles = particles.filter(function (p) {
+            return p.life > 0 && p.y < H + 60;
+          });
+
+          particles.forEach(function (p) {
+            if (p.type === 'confetti') {
+              p.vy += 0.2;
+              p.vx *= 0.985;
+              p.x += p.vx;
+              p.y += p.vy;
+              p.rot += p.vr;
+              p.life -= p.decay;
+
+              drawShape(p);
+            } else {
+              p.vy += 0.06;
+              p.vx *= 0.98;
+              p.vy *= 0.98;
+              p.x += p.vx;
+              p.y += p.vy;
+              p.life -= p.decay;
+
+              ctx.globalAlpha = Math.max(0, p.life);
+              ctx.fillStyle = p.color;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          });
+
+          ctx.globalAlpha = 1;
+          rafId = requestAnimationFrame(frame);
+        }
+
+        rafId = requestAnimationFrame(frame);
+      }
+
+      // 第一次翻页时明信片和背景都变成彩色，并放出彩纸与烟花；之后保持彩色
+      function flip(toBack) {
+        if (toBack && !card.classList.contains('colored')) {
+          celebrate();
+          card.classList.add('colored');
+          document.body.classList.add('colored');
+        }
+        card.classList.toggle('flipped', toBack);
+      }
+
+      flipBtn.addEventListener('click', function () { flip(true); });
+      backBtn.addEventListener('click', function () { flip(false); });
+
+      // 滑动翻页：正面和背面都可以，方向不限（左滑、右滑均可）
+      var SWIPE_MIN_DISTANCE = 50;   // 最小滑动距离（px）
+      var scene = document.querySelector('.scene');
+      var startX = 0, startY = 0, tracking = false;
+
+      scene.addEventListener('pointerdown', function (e) {
+        if (!hasName) return; // 默认页面不支持滑动翻页
+        startX = e.clientX;
+        startY = e.clientY;
+        tracking = true;
+      });
+
+      scene.addEventListener('pointercancel', function () {
+        tracking = false;
+      });
+
+      scene.addEventListener('pointerup', function (e) {
+        if (!tracking) return;
+        tracking = false;
+
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+
+        // 水平距离要足够大，并且明显大于垂直距离，避免与上下滚动冲突
+        if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+
+        var isBack = card.classList.contains('flipped');
+        flip(!isBack);
+      });
+
+      // 生成雪花：下落速度放慢，周期 18–30 秒
+      var COUNT = 35;
+      var frag = document.createDocumentFragment();
+      for (var i = 0; i < COUNT; i++) {
+        var f = document.createElement('span');
+        var size = 4 + Math.random() * 6;
+        f.className = 'flake';
+        f.style.width = size + 'px';
+        f.style.height = size + 'px';
+        f.style.left = (Math.random() * 100) + 'vw';
+        f.style.opacity = (0.5 + Math.random() * 0.5).toFixed(2);
+        f.style.animationDuration = (18 + Math.random() * 12) + 's, ' + (4 + Math.random() * 3) + 's';
+        f.style.animationDelay = (-Math.random() * 30) + 's, 0s';
+        frag.appendChild(f);
+      }
+      document.body.insertBefore(frag, document.body.firstChild);
+    })();
+  </script>
+</body>
+</html>

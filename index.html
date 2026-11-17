@@ -906,22 +906,33 @@
       }
 
       function startCountdown() {
-        var remaining = 5;
-        updateCountdownDisplay(remaining);
+        // 英国在 2026 年 12 月为 GMT（UTC+0），目标时间等于 UTC 2026-12-25 00:00:00。
+        // Date.now() 返回 UTC 时间戳，因此会自动适配用户设备所在时区。
+        var targetUtc = Date.UTC(2026, 11, 25, 0, 0, 0);
+        var finished = false;
 
-        var timer = setInterval(function () {
-          remaining -= 1;
+        function getRemainingSeconds() {
+          return Math.max(0, Math.floor((targetUtc - Date.now()) / 1000));
+        }
+
+        function tick() {
+          var remaining = getRemainingSeconds();
           updateCountdownDisplay(remaining);
 
-          if (remaining <= 0) {
-            clearInterval(timer);
-            setTimeout(function () {
-              countdownScreen.classList.add('is-hidden');
-              loadingScreen.classList.remove('waiting');
-              setTimeout(updateLoading, 420);
-            }, 550);
+          if (remaining <= 0 && !finished) {
+            finished = true;
+            countdownScreen.classList.add('is-hidden');
+            loadingScreen.classList.remove('waiting');
+            setTimeout(updateLoading, 420);
+            return;
           }
-        }, 1000);
+
+          if (!finished) {
+            setTimeout(tick, 1000);
+          }
+        }
+
+        tick();
       }
 
       function changeLoadingText(element, text) {

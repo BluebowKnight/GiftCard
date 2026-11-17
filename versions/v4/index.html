@@ -66,11 +66,12 @@
 
     .loading-card {
       width: min(88vw, 360px);
+      height: clamp(300px, 72vh, 420px);
       min-height: 300px;
       position: relative;
       z-index: 1;
       background: #11162f;
-      padding: 54px 30px 44px;
+      padding: 48px 24px 40px;
       border: 1px solid rgba(247, 247, 245, 0.72);
       border-radius: 4px;
       display: flex;
@@ -80,7 +81,6 @@
       text-align: center;
       box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
       transition: transform 0.45s ease, opacity 0.8s ease;
-    }
     }
     .loading-screen.is-complete .loading-card {
       transform: translateY(-6px) scale(0.985);
@@ -125,7 +125,7 @@
     }
 
     .progress-wrap {
-      width: min(100%, 250px);
+      width: min(100%, 220px);
     }
     .progress-track {
       position: relative;
@@ -147,6 +147,118 @@
       font-size: 10px;
       letter-spacing: 1px;
       color: rgba(247, 247, 245, 0.58);
+    }
+
+    .loading-screen.waiting {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* ---- 倒计时页面 ---- */
+    .countdown-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 12;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(ellipse at 50% 115%, #3a3f6b 0%, #1a1d3a 40%, #070a1c 100%);
+      color: #f7f7f5;
+      opacity: 1;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+    .countdown-screen.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .countdown-snow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .countdown-card {
+      position: relative;
+      z-index: 1;
+      width: min(88vw, 360px);
+      height: clamp(300px, 72vh, 420px);
+      min-height: 300px;
+      padding: 48px 24px 40px;
+      border: 1px solid rgba(247, 247, 245, 0.72);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: #11162f;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+    .countdown-kicker {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #d6b85a;
+      margin-bottom: 18px;
+    }
+    .countdown-title {
+      font-size: clamp(23px, 7vw, 32px);
+      line-height: 1.25;
+      font-style: italic;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+    .countdown-number {
+      min-height: 64px;
+      margin-top: 8px;
+      align-items: baseline;
+      justify-content: center;
+      gap: 3px;
+      color: #d6b85a;
+      font-size: clamp(16px, 4.8vw, 25px);
+      font-weight: 700;
+      line-height: 1.25;
+      white-space: nowrap;
+      font-family: "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .time-unit {
+      display: inline-flex;
+      align-items: baseline;
+    }
+    .time-value {
+      display: inline-block;
+      min-width: 2ch;
+      text-align: right;
+    }
+    .time-label {
+      margin-left: 2px;
+      font-size: 0.62em;
+      font-weight: 400;
+      color: rgba(247, 247, 245, 0.72);
+    }
+    .time-value.flip {
+      animation: timeFlip 0.78s ease-out;
+    }
+    @keyframes timeFlip {
+      0% { opacity: 0.72; transform: rotateX(35deg); }
+      55% { opacity: 1; transform: rotateX(-5deg); }
+      100% { opacity: 1; transform: rotateX(0); }
+    }
+    .countdown-number.tick {
+      animation: countdownTick 0.75s ease;
+    }
+    @keyframes countdownTick {
+      0% { opacity: 0.25; transform: scale(0.84); }
+      55% { opacity: 1; transform: scale(1.04); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .countdown-message {
+      margin-top: 18px;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: rgba(247, 247, 245, 0.72);
     }
 
     /* ---- 背景：翻开前是黎明前的夜空，翻开后变成温暖明媚的暖光 ---- */
@@ -615,8 +727,24 @@
 </head>
 <body>
 
-  <!-- 首屏加载页 -->
-  <section class="loading-screen" id="loadingScreen" aria-label="正在加载">
+  <!-- 三秒倒计时 -->
+  <section class="countdown-screen" id="countdownScreen" aria-label="倒计时">
+    <div class="countdown-snow" id="countdownSnow" aria-hidden="true"></div>
+    <div class="countdown-card">
+      <p class="countdown-kicker">雪夜寄怀·岁暮问安</p>
+      <h1 class="countdown-title">距离圣诞节还有</h1>
+      <div class="countdown-number" id="countdownNumber" aria-live="polite">
+        <span class="time-unit"><span class="time-value" data-unit="days">00</span><span class="time-label">天</span></span>
+        <span class="time-unit"><span class="time-value" data-unit="hours">00</span><span class="time-label">时</span></span>
+        <span class="time-unit"><span class="time-value" data-unit="minutes">00</span><span class="time-label">分</span></span>
+        <span class="time-unit"><span class="time-value" data-unit="seconds">05</span><span class="time-label">秒</span></span>
+      </div>
+      <p class="countdown-message">圣诞老人正在加班生产中...</p>
+    </div>
+  </section>
+
+  <!-- 加载页面 -->
+  <section class="loading-screen waiting" id="loadingScreen" aria-label="正在加载">
     <div class="loading-snow" id="loadingSnow" aria-hidden="true"></div>
     <div class="loading-card">
       <p class="loading-kicker">雪夜寄怀·岁暮问安</p>
@@ -750,11 +878,51 @@
       var loadingMessage = document.getElementById('loadingMessage');
       var loadingStatus = document.getElementById('loadingStatus');
       var loadingSnow = document.getElementById('loadingSnow');
+      var countdownSnow = document.getElementById('countdownSnow');
       var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       var loadingProgress = 0;
       var loadingMilestones = [12, 27, 41, 58, 72, 88, 96, 100];
       var loadingIndex = 0;
       var loadingPause = 0;
+      var countdownScreen = document.getElementById('countdownScreen');
+      var countdownNumber = document.getElementById('countdownNumber');
+
+      function updateCountdownDisplay(totalSeconds) {
+        var values = {
+          days: String(Math.floor(totalSeconds / 86400)).padStart(2, '0'),
+          hours: String(Math.floor((totalSeconds % 86400) / 3600)).padStart(2, '0'),
+          minutes: String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0'),
+          seconds: String(totalSeconds % 60).padStart(2, '0')
+        };
+
+        Object.keys(values).forEach(function (unit) {
+          var valueEl = countdownNumber.querySelector('[data-unit="' + unit + '"]');
+          if (valueEl.textContent === values[unit]) return;
+          valueEl.classList.remove('flip');
+          void valueEl.offsetWidth;
+          valueEl.textContent = values[unit];
+          valueEl.classList.add('flip');
+        });
+      }
+
+      function startCountdown() {
+        var remaining = 5;
+        updateCountdownDisplay(remaining);
+
+        var timer = setInterval(function () {
+          remaining -= 1;
+          updateCountdownDisplay(remaining);
+
+          if (remaining <= 0) {
+            clearInterval(timer);
+            setTimeout(function () {
+              countdownScreen.classList.add('is-hidden');
+              loadingScreen.classList.remove('waiting');
+              setTimeout(updateLoading, 420);
+            }, 550);
+          }
+        }, 1000);
+      }
 
       function changeLoadingText(element, text) {
         if (element.textContent === text) return;
@@ -767,18 +935,20 @@
         }, 180);
       }
 
-      for (var snowIndex = 0; snowIndex < 28; snowIndex++) {
-        var snow = document.createElement('span');
-        var snowSize = 3 + Math.random() * 6;
-        snow.className = 'loading-flake';
-        snow.style.width = snowSize + 'px';
-        snow.style.height = snowSize + 'px';
-        snow.style.left = Math.random() * 100 + '%';
-        snow.style.opacity = (0.35 + Math.random() * 0.5).toFixed(2);
-        snow.style.animationDuration = (12 + Math.random() * 12) + 's';
-        snow.style.animationDelay = (-Math.random() * 20) + 's';
-        loadingSnow.appendChild(snow);
-      }
+      [loadingSnow, countdownSnow].forEach(function (snowContainer) {
+        for (var snowIndex = 0; snowIndex < 28; snowIndex++) {
+          var snow = document.createElement('span');
+          var snowSize = 3 + Math.random() * 6;
+          snow.className = 'loading-flake';
+          snow.style.width = snowSize + 'px';
+          snow.style.height = snowSize + 'px';
+          snow.style.left = Math.random() * 100 + '%';
+          snow.style.opacity = (0.35 + Math.random() * 0.5).toFixed(2);
+          snow.style.animationDuration = (12 + Math.random() * 12) + 's';
+          snow.style.animationDelay = (-Math.random() * 20) + 's';
+          snowContainer.appendChild(snow);
+        }
+      });
 
       function finishLoading() {
         document.body.classList.add('loaded');
@@ -812,15 +982,15 @@
 
         if (loadingProgress >= 50 && loadingProgress <= 80) {
           changeLoadingText(loadingMessage, '圣诞老人正在敲门');
-          changeLoadingText(loadingStatus, '驼鹿门口吃草');
+          changeLoadingText(loadingStatus, '驼鹿独自在门口吃草');
         } else if (loadingProgress > 80 && loadingProgress < 100) {
           changeLoadingText(loadingMessage, '圣诞老人正在翻烟囱');
-          changeLoadingText(loadingStatus, '驼鹿在门口画圈圈');
+          changeLoadingText(loadingStatus, '驼鹿在门口等的不耐烦了');
         }
 
         if (loadingProgress >= 100) {
           changeLoadingText(loadingMessage, '礼物已抵达，请签收');
-          changeLoadingText(loadingStatus, '驼鹿跑远啦');
+          changeLoadingText(loadingStatus, '圣诞老人正在追驼鹿');
           loadingScreen.classList.add('is-complete');
           setTimeout(finishLoading, reducedMotion ? 180 : 1000);
           return;
@@ -828,7 +998,7 @@
 
         setTimeout(updateLoading, reducedMotion ? 25 : 55 + Math.random() * 75);
       }
-      updateLoading();
+      startCountdown();
 
       var card = document.getElementById('card');
       var flipBtn = document.getElementById('flipBtn');
@@ -887,6 +1057,7 @@
         dw: '戴雯',
         ly: '乐瑶',
         swt: '孙琬婷',
+        zj: '左洁',
         test: '测试'
       };
       var specialLetter = {
@@ -897,14 +1068,18 @@
         zj: '.letter-zj'
       }[lower] || '';
       var isJohnny = lower === 'johnny';
-      var isInteractiveRoute = Boolean(specialLetter) || isJohnny || lower === 'test';
+      var isSpecialRoute = Boolean(specialNames[lower]) || isJohnny;
       if (specialNames[lower]) {
         name = specialNames[lower];
       } else if (/^[a-z]+$/i.test(name)) {
         // 英文名称统一为首字母大写、其余字母小写；中文和其他名称保持原样
         name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
       }
-      var hasName = name !== '';
+      var hasName = name !== '' && isSpecialRoute;
+      if (!hasName) {
+        name = '';
+      }
+      var isInteractiveRoute = isSpecialRoute;
       nameEl.textContent = hasName ? name : '圣诞快乐'; // 使用 textContent 防止注入
       if (!hasName) {
         document.querySelector('.lead').textContent = '嘿，旅者';
@@ -928,8 +1103,7 @@
         document.querySelector('.letter-johnny').hidden = false;
       }
 
-      // 只有 6 个特殊路径支持按钮和滑动翻页；其他路径只显示名称
-      // 使用 visibility 隐藏而不是移除，保留按钮占位，使标题和圣诞树位置与 index 页面一致
+      // 只有 7 个特殊路径支持按钮和滑动翻页；其他路径统一按默认页面显示
       if (!isInteractiveRoute) {
         flipBtn.style.visibility = 'hidden';
         flipBtn.setAttribute('aria-hidden', 'true');

@@ -66,6 +66,7 @@
 
     .loading-card {
       width: min(88vw, 360px);
+      height: clamp(300px, 72vh, 420px);
       min-height: 300px;
       position: relative;
       z-index: 1;
@@ -182,6 +183,7 @@
       position: relative;
       z-index: 1;
       width: min(88vw, 360px);
+      height: clamp(300px, 72vh, 420px);
       min-height: 300px;
       padding: 48px 24px 40px;
       border: 1px solid rgba(247, 247, 245, 0.72);
@@ -980,15 +982,15 @@
 
         if (loadingProgress >= 50 && loadingProgress <= 80) {
           changeLoadingText(loadingMessage, '圣诞老人正在敲门');
-          changeLoadingText(loadingStatus, '驼鹿门口吃草');
+          changeLoadingText(loadingStatus, '驼鹿独自在门口吃草');
         } else if (loadingProgress > 80 && loadingProgress < 100) {
           changeLoadingText(loadingMessage, '圣诞老人正在翻烟囱');
-          changeLoadingText(loadingStatus, '驼鹿在门口画圈圈');
+          changeLoadingText(loadingStatus, '驼鹿在门口等的不耐烦了');
         }
 
         if (loadingProgress >= 100) {
           changeLoadingText(loadingMessage, '礼物已抵达，请签收');
-          changeLoadingText(loadingStatus, '驼鹿跑远啦');
+          changeLoadingText(loadingStatus, '圣诞老人正在追驼鹿');
           loadingScreen.classList.add('is-complete');
           setTimeout(finishLoading, reducedMotion ? 180 : 1000);
           return;
@@ -1055,6 +1057,7 @@
         dw: '戴雯',
         ly: '乐瑶',
         swt: '孙琬婷',
+        zj: '左洁',
         test: '测试'
       };
       var specialLetter = {
@@ -1065,14 +1068,18 @@
         zj: '.letter-zj'
       }[lower] || '';
       var isJohnny = lower === 'johnny';
-      var isInteractiveRoute = Boolean(specialLetter) || isJohnny || lower === 'test';
+      var isSpecialRoute = Boolean(specialNames[lower]) || isJohnny;
       if (specialNames[lower]) {
         name = specialNames[lower];
       } else if (/^[a-z]+$/i.test(name)) {
         // 英文名称统一为首字母大写、其余字母小写；中文和其他名称保持原样
         name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
       }
-      var hasName = name !== '';
+      var hasName = name !== '' && isSpecialRoute;
+      if (!hasName) {
+        name = '';
+      }
+      var isInteractiveRoute = isSpecialRoute;
       nameEl.textContent = hasName ? name : '圣诞快乐'; // 使用 textContent 防止注入
       if (!hasName) {
         document.querySelector('.lead').textContent = '嘿，旅者';
@@ -1096,8 +1103,7 @@
         document.querySelector('.letter-johnny').hidden = false;
       }
 
-      // 只有 6 个特殊路径支持按钮和滑动翻页；其他路径只显示名称
-      // 使用 visibility 隐藏而不是移除，保留按钮占位，使标题和圣诞树位置与 index 页面一致
+      // 只有 7 个特殊路径支持按钮和滑动翻页；其他路径统一按默认页面显示
       if (!isInteractiveRoute) {
         flipBtn.style.visibility = 'hidden';
         flipBtn.setAttribute('aria-hidden', 'true');

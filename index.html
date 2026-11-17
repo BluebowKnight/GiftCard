@@ -173,18 +173,10 @@
       visibility: hidden;
       pointer-events: none;
     }
-    .countdown-screen::before {
-      content: "";
+    .countdown-snow {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      opacity: 0.5;
-      background-image: radial-gradient(circle, rgba(255,255,255,0.75) 0 2px, transparent 2.5px);
-      background-size: 86px 112px;
-      animation: countdownSnow 14s linear infinite;
-    }
-    @keyframes countdownSnow {
-      to { background-position: 35px 112px; }
     }
     .countdown-card {
       position: relative;
@@ -735,6 +727,7 @@
 
   <!-- 三秒倒计时 -->
   <section class="countdown-screen" id="countdownScreen" aria-label="倒计时">
+    <div class="countdown-snow" id="countdownSnow" aria-hidden="true"></div>
     <div class="countdown-card">
       <p class="countdown-kicker">雪夜寄怀·岁暮问安</p>
       <h1 class="countdown-title">距离圣诞节还有</h1>
@@ -883,6 +876,7 @@
       var loadingMessage = document.getElementById('loadingMessage');
       var loadingStatus = document.getElementById('loadingStatus');
       var loadingSnow = document.getElementById('loadingSnow');
+      var countdownSnow = document.getElementById('countdownSnow');
       var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       var loadingProgress = 0;
       var loadingMilestones = [12, 27, 41, 58, 72, 88, 96, 100];
@@ -939,18 +933,20 @@
         }, 180);
       }
 
-      for (var snowIndex = 0; snowIndex < 28; snowIndex++) {
-        var snow = document.createElement('span');
-        var snowSize = 3 + Math.random() * 6;
-        snow.className = 'loading-flake';
-        snow.style.width = snowSize + 'px';
-        snow.style.height = snowSize + 'px';
-        snow.style.left = Math.random() * 100 + '%';
-        snow.style.opacity = (0.35 + Math.random() * 0.5).toFixed(2);
-        snow.style.animationDuration = (12 + Math.random() * 12) + 's';
-        snow.style.animationDelay = (-Math.random() * 20) + 's';
-        loadingSnow.appendChild(snow);
-      }
+      [loadingSnow, countdownSnow].forEach(function (snowContainer) {
+        for (var snowIndex = 0; snowIndex < 28; snowIndex++) {
+          var snow = document.createElement('span');
+          var snowSize = 3 + Math.random() * 6;
+          snow.className = 'loading-flake';
+          snow.style.width = snowSize + 'px';
+          snow.style.height = snowSize + 'px';
+          snow.style.left = Math.random() * 100 + '%';
+          snow.style.opacity = (0.35 + Math.random() * 0.5).toFixed(2);
+          snow.style.animationDuration = (12 + Math.random() * 12) + 's';
+          snow.style.animationDelay = (-Math.random() * 20) + 's';
+          snowContainer.appendChild(snow);
+        }
+      });
 
       function finishLoading() {
         document.body.classList.add('loaded');

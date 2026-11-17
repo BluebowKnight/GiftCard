@@ -1006,7 +1006,7 @@
       var nameEl = document.getElementById('name');
 
       // 第一次点击翻页按钮时播放音乐，开头渐入，播放到文件结束后自然停止
-      var music = new Audio('merry_xmas.mp3');
+      var music = new Audio('/merry_xmas.mp3');
       music.preload = 'auto';
       music.loop = false;
       var musicStarted = false;
@@ -1031,6 +1031,8 @@
         var playPromise = music.play();
         if (playPromise && playPromise.then) {
           playPromise.then(fadeIn).catch(function (err) {
+            // 播放失败时允许下一次用户点击重试，避免一次失败永久锁死
+            musicStarted = false;
             console.warn('音乐播放失败：', err);
           });
         } else {

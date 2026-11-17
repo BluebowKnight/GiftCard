@@ -1,6 +1,6 @@
 # Merry Xmas 明信片 · V2 更新说明
 
-本版本保存为 `versions/index_v2.html`，相对 V1（`versions/index_v1.html`）的主要更新如下。
+本版本保存为 `versions/v2/index.html`，相对 V1（`versions/v1/index.html`）的主要更新如下。
 
 ## 1. 名称与默认页面
 

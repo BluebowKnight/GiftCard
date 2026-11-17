@@ -182,8 +182,25 @@
       justify-content: safe center;
       padding: 72px 44px 60px;
       text-align: center;
+      overflow: hidden;
+    }
+
+    /* 祝福语较长时只在文字区域内滚动，卡片本身保持满屏固定 */
+    .letter-default,
+    .letter-johnny,
+    .letter-ztj,
+    .letter-dw,
+    .letter-ly,
+    .letter-zj {
+      width: 100%;
+      max-height: 100%;
+      min-height: 0;
       overflow-y: auto;
+      overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
+      scrollbar-gutter: stable;
+      padding: 8px 12px 12px;
+      touch-action: pan-y;
     }
 
     /* 顶部小字：雪夜寄怀·岁暮问安 */
@@ -265,6 +282,9 @@
 
     /* 按钮：两行文字，主文字 + 下方小字 */
     .btn {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -278,6 +298,43 @@
       cursor: pointer;
       transition: background 0.25s, color 0.25s, border-color 1.2s ease;
     }
+    .btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: #111;
+      transform: scaleX(var(--swipe-progress, 0));
+      transform-origin: left center;
+      transition: transform 0.18s ease;
+      pointer-events: none;
+    }
+    .btn.swipe-left::before { transform-origin: right center; }
+    .btn.swiping > span {
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+    .btn.swiping.swipe-right > span {
+      background-image: linear-gradient(
+        to right,
+        #f7f7f5 0%,
+        #f7f7f5 calc(var(--swipe-progress, 0) * 100%),
+        #111 calc(var(--swipe-progress, 0) * 100%),
+        #111 100%
+      );
+    }
+    .btn.swiping.swipe-left > span {
+      background-image: linear-gradient(
+        to left,
+        #f7f7f5 0%,
+        #f7f7f5 calc(var(--swipe-progress, 0) * 100%),
+        #111 calc(var(--swipe-progress, 0) * 100%),
+        #111 100%
+      );
+    }
+    .btn > span { position: relative; z-index: 1; }
     .btn-main {
       font-size: 15px;
       letter-spacing: 3px;
@@ -297,6 +354,25 @@
     .card.colored .btn {
       color: #1f4d2b;
       border-color: #9bb5a2;
+    }
+    .card.colored .btn::before { background: #1f4d2b; }
+    .card.colored .btn.swiping.swipe-right > span {
+      background-image: linear-gradient(
+        to right,
+        #fffaf3 0%,
+        #fffaf3 calc(var(--swipe-progress, 0) * 100%),
+        #1f4d2b calc(var(--swipe-progress, 0) * 100%),
+        #1f4d2b 100%
+      );
+    }
+    .card.colored .btn.swiping.swipe-left > span {
+      background-image: linear-gradient(
+        to left,
+        #fffaf3 0%,
+        #fffaf3 calc(var(--swipe-progress, 0) * 100%),
+        #1f4d2b calc(var(--swipe-progress, 0) * 100%),
+        #1f4d2b 100%
+      );
     }
     .card.colored .btn:hover,
     .card.colored .btn:focus-visible {
@@ -325,6 +401,23 @@
       font-style: italic;
       font-size: clamp(14px, 3.8vw, 17px);
       color: #444;
+    }
+
+    .copyright {
+      position: absolute;
+      right: 0;
+      bottom: 18px;
+      left: 0;
+      z-index: 3;
+      color: #7a7a7a;
+      font-family: Arial, sans-serif;
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-align: center;
+      opacity: 0.22;
+      transition: color 1.2s ease;
+      pointer-events: none;
+      user-select: none;
     }
 
     /* 左上角的小字“返回首页”，放在边框内侧 */
@@ -376,6 +469,9 @@
     }
     .card.colored .sign {
       color: #a67c1a;
+    }
+    .card.colored .copyright {
+      color: #b99b55;
     }
     .card.colored .back-btn {
       color: #a67c1a;
@@ -437,11 +533,13 @@
           <span class="btn-main">你终于来啦</span>
           <span class="btn-hint">轻点或滑动</span>
         </button>
+        <p class="copyright">©RF.Backspace</p>
       </section>
 
       <!-- 背面 -->
       <section class="face back">
         <button class="back-btn" id="backBtn" type="button">← 返回首页</button>
+        <p class="copyright">©RF.Backspace</p>
 
         <!-- 默认背面文字 -->
         <div class="letter-default">
@@ -454,13 +552,38 @@
           <p class="sign">— 愿你安好</p>
         </div>
 
+      <!-- ZTJ 专属背面文字 -->
+        <div class="letter-ztj" hidden>
+          <h2 class="wish-title">致我的朋友</h2>
+          <p class="wish">又到圣诞了。<br>愿你在迷失时仍记得抬头看星图，愿你能继续带着开放的眼睛和心灵，去探索你所在的这片星空，也认识你自己。<br>好好照顾那些在爱你的的人，但更重要的是，好好照顾自己。<br>圣诞快乐。</p>
+          <p class="sign">—菲利帕·乔治乌</p>
+        </div>
+
+        <!-- DW 专属背面文字 -->
+        <div class="letter-dw" hidden>
+          <h2 class="wish-title">嘿，我的朋友！</h2>
+          <p class="wish">圣诞节到了，你要乖乖的哦，不然圣诞老公公不给你礼物……不过没关系，我也不乖，他还不是照样送！嘿嘿～<br><br>祝你收到好多好多礼物，吃好多好多蛋糕，还有——记得分我一点巧克比饼干！<br><br>对了，你要是看到漂亮的大姐姐，帮我说一声圣诞快乐哦～<br><br>大象～大象～鼻子那么长～ 🎄</p>
+          <p class="sign">—野原新之助</p>
+        </div>
+
+        <!-- LY 专属背面文字 -->
+        <div class="letter-ly" hidden>
+          <h2 class="wish-title">圣诞快乐</h2>
+          <p class="wish">……别那么看着我，我不是来送什么礼物的，只是刚好路过这破地方。不过既然撞上了，就顺带说几句。<br><br>热红酒少喝点，喝多了明天训练手抖，别怪我没提醒。蛋糕可以吃，但别贪，吃撑了跑不动，巨人可不会等你消化完。制服记得洗干净，酒渍干了洗不掉，丢人。<br><br>还有——能活着互相说一句&quot;圣诞快乐&quot;的日子，不多。所以今天好好过。别浪费。</p>
+          <p class="sign">—リヴァイ·アッカーマン</p>
+        </div>
+
+        <!-- ZJ 专属背面文字 -->
+        <div class="letter-zj" hidden>
+          <h2 class="wish-title">圣诞快乐，伙计</h2>
+          <p class="wish">别惦记什么圣诞老人了——他记不住你，明年就换新的了。你也别觉得收不到礼物是什么大事，我见过太多玩具了，刚被抱回家的时候都是宝贝，过俩月就塞进箱子底，再过一年就进垃圾袋。被忘了？被替换？别难过。没有主人，就没有心碎。这里才是你该待的地方，大家都一样，谁也不比谁金贵。哦对了，把这张贺卡收好，别弄丢了——我可不希望你也觉得自己是被扔掉的。</p>
+          <p class="sign">—Lotso</p>
+        </div>
+
         <!-- 名称为 Johnny 时显示的专属背面文字 -->
         <div class="letter-johnny" hidden>
           <h2 class="wish-title">嘿，年轻的旅人</h2>
-          <p class="wish">当冬夜的晚星如精灵宝钻般闪烁，当炉火在壁炉里跳起霍比特人的舞步，你便知道：圣诞的钟声并非敲自教堂尖顶，而是响在每一颗愿意相信奇迹的心里。</p>
-          <p class="wish">有些魔法从不写在咒语书里——分享的苹果酒，一个拥抱，暴风雪夜为陌生人留的那盏灯。即便智者，也无法洞悉所有结局，但我们可以决定的，是如何对待手中握着的时日。</p>
-          <p class="wish">圣诞快乐，我的朋友。愿你来年如夏尔般安逸，如刚铎般坚定，如洛丝罗瑞恩般，永远藏着一片不肯凋零的春天。</p>
-          <p class="wish">现在，去拆你的礼物吧——我保证，里面没有龙。</p>
+          <p class="wish">当冬夜的晚星如精灵宝钻般闪烁，当炉火在壁炉里跳起霍比特人的舞步，你便知道：圣诞的钟声并非敲自教堂尖顶，而是响在每一颗愿意相信奇迹的心里。<br><br>有些魔法从不写在咒语书里——分享的苹果酒，一个拥抱，暴风雪夜为陌生人留的那盏灯。即便智者，也无法洞悉所有结局，但我们可以决定的，是如何对待手中握着的时日。<br><br>圣诞快乐，我的朋友。愿你来年如夏尔般安逸，如刚铎般坚定，如洛丝罗瑞恩般，永远藏着一片不肯凋零的春天。<br><br>现在，去拆你的礼物吧——我保证，里面没有龙。</p>
           <p class="sign">—欧罗林</p>
         </div>
       </section>
@@ -475,7 +598,42 @@
       var backBtn = document.getElementById('backBtn');
       var nameEl = document.getElementById('name');
 
-      // 名称：取 URL 第一段路径，例如 /maxiaobin 得到 maxiaobin；/、/index.html 等没有名称的地址视为默认页面
+      // 第一次点击翻页按钮时播放音乐，开头渐入，播放到文件结束后自然停止
+      var music = new Audio('merry_xmas.mp3');
+      music.preload = 'auto';
+      music.loop = false;
+      var musicStarted = false;
+      var MUSIC_VOLUME = 0.65;
+      var FADE_IN_SECONDS = 2;
+
+      function startMusic() {
+        if (musicStarted) return;
+        musicStarted = true;
+        music.volume = 0;
+
+        function fadeIn() {
+          var fadeInStart = performance.now();
+          function step(now) {
+            var progress = Math.max(0, Math.min(1, (now - fadeInStart) / (FADE_IN_SECONDS * 1000)));
+            music.volume = Math.max(0, Math.min(MUSIC_VOLUME, MUSIC_VOLUME * progress));
+            if (progress < 1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+        }
+
+        var playPromise = music.play();
+        if (playPromise && playPromise.then) {
+          playPromise.then(fadeIn).catch(function (err) {
+            console.warn('音乐播放失败：', err);
+          });
+        } else {
+          fadeIn();
+        }
+      }
+
+      // 音乐只渐入，不在结尾渐出，播放到文件结束后自然停止
+
+      // 名称：取 URL 第一段路径，例如 /test 得到 test；/、/index.html 等没有名称的地址视为默认页面
       var name = '';
       var firstSegment = window.location.pathname.split('/')[1] || '';
       var lower = firstSegment.toLowerCase();
@@ -487,21 +645,54 @@
         }
       }
       name = name.trim();
+      var specialNames = {
+        ztj: '张天娇',
+        dw: '戴雯',
+        ly: '乐瑶',
+        zj: '左洁',
+        test: '测试'
+      };
+      var specialLetter = {
+        ztj: '.letter-ztj',
+        dw: '.letter-dw',
+        ly: '.letter-ly',
+        zj: '.letter-zj'
+      }[lower] || '';
+      var isJohnny = lower === 'johnny';
+      var isInteractiveRoute = Boolean(specialLetter) || isJohnny || lower === 'test';
+      if (specialNames[lower]) {
+        name = specialNames[lower];
+      } else if (/^[a-z]+$/i.test(name)) {
+        // 英文名称统一为首字母大写、其余字母小写；中文和其他名称保持原样
+        name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+      }
       var hasName = name !== '';
       nameEl.textContent = hasName ? name : '圣诞快乐'; // 使用 textContent 防止注入
       if (!hasName) {
         document.querySelector('.lead').textContent = '嘿，旅者';
       }
 
-      // 名称为 Johnny（不区分大小写）时，背面显示专属文字
-      if (hasName && name.toLowerCase() === 'johnny') {
+      // 为指定路径显示对应的专属祝福；名称为 Johnny 时显示另一份专属文字
+      if (specialLetter) {
+        [
+          '.letter-default',
+          '.letter-johnny',
+          '.letter-ztj',
+          '.letter-dw',
+          '.letter-ly',
+          '.letter-zj'
+        ].forEach(function (selector) {
+          document.querySelector(selector).hidden = true;
+        });
+        document.querySelector(specialLetter).hidden = false;
+      } else if (hasName && isJohnny) {
         document.querySelector('.letter-default').hidden = true;
         document.querySelector('.letter-johnny').hidden = false;
       }
 
-      // 没有名称（默认页面）时不显示按钮，也不支持滑动翻页
-      // 使用 visibility 隐藏而不是移除，保留按钮占位，使标题和圣诞树位置与有按钮时一致
-      if (!hasName) {
+      // 只有 6 个特殊路径支持按钮和滑动翻页；其他路径只显示名称
+      // 使用 visibility 隐藏而不是移除，保留按钮占位，使标题和圣诞树位置与 index 页面一致
+      if (!isInteractiveRoute) {
         flipBtn.style.visibility = 'hidden';
         flipBtn.setAttribute('aria-hidden', 'true');
         flipBtn.tabIndex = -1;
@@ -712,23 +903,52 @@
         card.classList.toggle('flipped', toBack);
       }
 
-      flipBtn.addEventListener('click', function () { flip(true); });
+      var suppressClickUntil = 0;
+      flipBtn.addEventListener('click', function () {
+        if (Date.now() < suppressClickUntil) return;
+        startMusic();
+        flip(true);
+      });
       backBtn.addEventListener('click', function () { flip(false); });
 
-      // 滑动翻页：正面和背面都可以，方向不限（左滑、右滑均可）
-      var SWIPE_MIN_DISTANCE = 50;   // 最小滑动距离（px）
+      // 正面横向滑动时，按照滑动方向填充按钮，填满后翻页
+      var SWIPE_MIN_DISTANCE = 50;
+      var SWIPE_FILL_DISTANCE = 150;
       var scene = document.querySelector('.scene');
-      var startX = 0, startY = 0, tracking = false;
+      var startX = 0, startY = 0, tracking = false, swipingFront = false;
+
+      function resetSwipeButton() {
+        flipBtn.classList.remove('swiping', 'swipe-left', 'swipe-right');
+        flipBtn.style.setProperty('--swipe-progress', '0');
+      }
 
       scene.addEventListener('pointerdown', function (e) {
-        if (!hasName) return; // 默认页面不支持滑动翻页
+        if (!isInteractiveRoute) return;
         startX = e.clientX;
         startY = e.clientY;
         tracking = true;
+        swipingFront = !card.classList.contains('flipped');
+        if (swipingFront) resetSwipeButton();
+      });
+
+      scene.addEventListener('pointermove', function (e) {
+        if (!tracking || !swipingFront) return;
+
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        if (Math.abs(dx) <= Math.abs(dy) * 1.15) return;
+
+        var progress = Math.min(1, Math.abs(dx) / SWIPE_FILL_DISTANCE);
+        flipBtn.classList.add('swiping');
+        flipBtn.classList.toggle('swipe-right', dx > 0);
+        flipBtn.classList.toggle('swipe-left', dx < 0);
+        flipBtn.style.setProperty('--swipe-progress', progress.toFixed(3));
       });
 
       scene.addEventListener('pointercancel', function () {
         tracking = false;
+        swipingFront = false;
+        resetSwipeButton();
       });
 
       scene.addEventListener('pointerup', function (e) {
@@ -737,12 +957,31 @@
 
         var dx = e.clientX - startX;
         var dy = e.clientY - startY;
+        var isHorizontalSwipe = Math.abs(dx) >= SWIPE_MIN_DISTANCE && Math.abs(dx) >= Math.abs(dy) * 1.5;
 
-        // 水平距离要足够大，并且明显大于垂直距离，避免与上下滚动冲突
-        if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        if (swipingFront) {
+          if (isHorizontalSwipe) {
+            // 让按钮先完成填充，再执行翻页；避免拖动结束时突然跳变
+            flipBtn.classList.add('swiping');
+            flipBtn.classList.toggle('swipe-right', dx > 0);
+            flipBtn.classList.toggle('swipe-left', dx < 0);
+            flipBtn.style.setProperty('--swipe-progress', '1');
+            suppressClickUntil = Date.now() + 500;
+            // 必须在 pointerup 的用户手势中立即调用 play()，否则延迟回调可能被浏览器拦截
+            startMusic();
+            setTimeout(function () {
+              resetSwipeButton();
+              flip(true);
+            }, 140);
+          } else {
+            resetSwipeButton();
+          }
+        } else if (isHorizontalSwipe) {
+          // 背面保持原有的左右滑动返回行为
+          flip(false);
+        }
 
-        var isBack = card.classList.contains('flipped');
-        flip(!isBack);
+        swipingFront = false;
       });
 
       // 生成雪花：下落速度放慢，周期 18–30 秒
